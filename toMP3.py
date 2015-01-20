@@ -7,8 +7,6 @@ import subprocess
 import time
 import platform
 import multiprocessing as mp
-#from multiprocessing import Process
-#from multiprocessing import Pool
 
 global root_dir
 
@@ -61,12 +59,6 @@ def convert(files):
       newfile = oldfile.replace(".flac", ".mp3")  
       #print "Processing: " + oldfile.replace(root_dir, '')
       try:
-        '''
-        output = subprocess.Popen(["ffmpeg", "-n", "-i", oldfile, "-qscale:a", "0", newfile], stdout=subprocess.PIPE).communicate()[0]
-        #output = subprocess.Popen(["ffmpeg", "-n", "-i", oldfile, "-qscale:a", "0", newfile], stdout=None).communicate()[0]        
-        with open('log.txt', 'w') as logfile:
-          logfile.write(output)
-        '''
         start = time.time()
         retcode = subprocess.call(["ffmpeg", "-n", "-i", oldfile, "-qscale:a", "0", newfile], stdout=FNULL, stderr=subprocess.STDOUT)
         elapsed = time.time() - start
@@ -105,13 +97,10 @@ if __name__ == '__main__':
     p = mp.Process(target=convert, args=(chunk,))
     jobs.append(p)
     p.start()
-    
+  
+  #wait for jobs to complete  
   for p in jobs:
     p.join()
-  '''
-  pool = mp.Pool(processes=4)
-  results = [pool.apply(convert, args=(x,)) for x in files_chunks]
-  '''
 
   elapsed_overall = time.time() - start_overall
   print bcolors.BOLD + "Processed all files in %s s" % (round(elapsed_overall, 3)) + bcolors.ENDC
