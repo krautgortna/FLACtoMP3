@@ -5,10 +5,24 @@ import os
 import sys
 import subprocess
 import time
-from multiprocessing import Pool
-from multiprocessing import Process
+import platform
+import multiprocessing as mp
+#from multiprocessing import Process
+#from multiprocessing import Pool
 
 global root_dir
+
+def print_sysinfo():
+
+    print '\nPython version : ' + platform.python_version()
+    print 'compiler       : ' + platform.python_compiler()
+
+    print '\nsystem     : ' + platform.system()
+    print 'release    : ' + platform.release()
+    print 'machine    : ' + platform.machine()
+    print 'processor  : ' + platform.processor()
+    print 'CPU count  : ' + str(mp.cpu_count())
+    print 'interpreter: ' + platform.architecture()[0]
 
 class bcolors:
     HEADER = '\033[95m'
@@ -40,6 +54,7 @@ def searchFlacs(top):
   return flacs
         
 def convert(files):
+  p_name = mp.current_process().name
   FNULL = open('log.txt', 'w')
   for dir, file in files:
       oldfile = os.path.join(dir, file)
@@ -56,20 +71,20 @@ def convert(files):
         retcode = subprocess.call(["ffmpeg", "-n", "-i", oldfile, "-qscale:a", "0", newfile], stdout=FNULL, stderr=subprocess.STDOUT)
         elapsed = time.time() - start
         if os.path.isfile(newfile):
-            print "Processed: " + oldfile.replace(root_dir, ''),
+            print p_name + ": " + oldfile.replace(root_dir, ''),
             print bcolors.OKBLUE + "   ... in %s s" % (round(elapsed, 3)) + bcolors.ENDC
         else:
-            print "Processed: " + oldfile.replace(root_dir, ''),
+            print p_name + ": " + oldfile.replace(root_dir, ''),
             print bcolors.FAIL + "\n   ...ERROR occured! Check log.txt for details!" + bcolors.ENDC
 
       except OSError:
         print "Error starting ffmpeg. Did you install ffmpeg and add it to your PATH?"
         print ""
         raise
+  return 0
 
 def chunks(l, n):
-    """ Yield successive n-sized chunks from l.
-    """
+    # Yield successive n-sized chunks from l.
     for i in xrange(0, len(l), n):
         yield l[i:i+n]
 
@@ -83,16 +98,27 @@ if __name__ == '__main__':
 
   files = searchFlacs(root_dir)
   #convert(files, root_dir)
-  files_chunks = list(chunks(files, len(files)/5))
+  files_chunks = list(chunks(files, len(files)/4))
 
   jobs = []
   for chunk in files_chunks:
-    p = Process(target=convert, args=(chunk,))
+    p = mp.Process(target=convert, args=(chunk,))
     jobs.append(p)
     p.start()
+    
+  for p in jobs:
+    p.join()
+  '''
+  pool = mp.Pool(processes=4)
+  results = [pool.apply(convert, args=(x,)) for x in files_chunks]
+  '''
 
   elapsed_overall = time.time() - start_overall
-  
   print bcolors.BOLD + "Processed all files in %s s" % (round(elapsed_overall, 3)) + bcolors.ENDC
+  
+  
+  print_sysinfo()
+  
+  
 
 
